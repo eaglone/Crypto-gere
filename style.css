@@ -86,4 +86,18 @@ input[type="submit"]:hover {
     background-color: #1c1c1e;
     color: #f2f2f2;
 }
+.icon-btn {
+    margin-top: 10px;
+    padding: 5px 10px;
+    background-color: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.icon-btn:hover {
+    background-color: #c0392b;
+}
 
