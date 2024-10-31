@@ -1,170 +1,179 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord de Trading</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto@gere - Gestion de Portefeuille</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Tableau de Bord de Trading</h1>
-    </header>
 
-    <section id="dashboard">
-        <h2>Mon Tableau de Bord</h2>
-        <p>Valeur totale actuelle de mon portefeuille : <span id="portfolio-value">$0.00 / €0.00</span></p>
-        <div id="portfolio-list">Aucune cryptomonnaie dans le portefeuille.</div>
+<header>
+<div id="clock"></div> <!-- Horloge en haut à gauche -->
+<h1>Crypto@gere</h1>
+</header>
 
-        <!-- Formulaire d'ajout -->
-        <div id="trade-form">
-            <h3>Ajouter une cryptomonnaie</h3>
-            <label for="trade-crypto">Crypto :</label>
-            <select id="trade-crypto" class="alert-input">
-                <!-- Les options seront ajoutées dynamiquement -->
-            </select>
-            <label for="trade-amount">Quantité :</label>
-            <input type="number" id="trade-amount" step="0.0001" placeholder="ex : 1.5" class="alert-input">
-            <label for="buy-threshold">Seuil d'achat (USD) :</label>
-            <input type="number" id="buy-threshold" step="0.01" placeholder="ex : 50000" class="alert-input">
-            <label for="sell-threshold">Seuil de vente (USD) :</label>
-            <input type="number" id="sell-threshold" step="0.01" placeholder="ex : 60000" class="alert-input">
-            <input type="submit" id="add-button" value="Ajouter au portefeuille">
-        </div>
-    </section>
+<div class="container">
+<!-- Section: Portefeuille utilisateur -->
+<div class="section">
+<h2>Mon Portefeuille</h2>
+<form id="addCryptoForm">
+<label for="crypto-select">Choisissez une cryptomonnaie :</label>
+<select id="crypto-select" required>
+<option value="">-- Sélectionnez une cryptomonnaie --</option>
+</select>
+<label for="crypto-quantity">Quantité :</label>
+<input type="number" id="crypto-quantity" placeholder="ex. 0.5" step="0.0001" class="small-input" required>
+<button type="submit">Ajouter au portefeuille</button>
+</form>
+<ul class="portfolio-list" id="portfolio-list">
+<!-- Les cryptomonnaies du portefeuille seront ajoutées ici -->
+</ul>
+<h3 id="total-value">Valeur Totale du Portefeuille : 0 €</h3>
+</div>
+</div>
 
-    <footer>
-        <p>© 2024 Mon Site de Trading</p>
-    </footer>
+<script>
+// Fonction pour mettre à jour l'heure en temps réel
+function updateClock() {
+const clockElement = document.getElementById("clock");
+const now = new Date();
+clockElement.textContent = now.toLocaleTimeString();
+}
 
-    <script>
-        let portfolio = {};
-        const alertSound = new Audio('alert-sound.mp3'); // Remplacez par le chemin de votre fichier audio
+setInterval(updateClock, 1000);
+updateClock();
 
-        // Charger les cryptomonnaies dans le menu déroulant
-        async function loadCryptoOptions() {
-            try {
-                const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd');
-                const data = await response.json();
-                const selectElement = document.getElementById('trade-crypto');
+async function fetchTop200CryptoList() {
+try {
+const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1');
+const cryptos = await response.json();
+const cryptoSelect = document.getElementById("crypto-select");
+cryptos.sort((a, b) => a.name.localeCompare(b.name));
+cryptos.forEach(crypto => {
+const option = document.createElement("option");
+option.value = crypto.id;
+option.textContent = `${crypto.name} (${crypto.symbol.toUpperCase()})`;
+cryptoSelect.appendChild(option);
+});
+} catch (error) {
+console.error("Erreur lors de la récupération de la liste des cryptomonnaies :", error);
+}
+}
 
-                data.forEach(crypto => {
-                    const option = document.createElement('option');
-                    option.value = crypto.id;
-                    option.textContent = crypto.name;
-                    selectElement.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Erreur lors du chargement des options de l\'API CoinGecko:', error);
-            }
-        }
+fetchTop200CryptoList();
 
-        loadCryptoOptions();
+const addCryptoForm = document.getElementById("addCryptoForm");
+const portfolioList = document.getElementById("portfolio-list");
+const totalValueDisplay = document.getElementById("total-value");
+let portfolio = JSON.parse(localStorage.getItem("cryptoPortfolio")) || [];
 
-        // Ajouter la crypto sélectionnée au portefeuille
-        document.getElementById('add-button').addEventListener('click', async () => {
-            const selectedCryptoId = document.getElementById('trade-crypto').value;
-            const selectedCryptoAmount = parseFloat(document.getElementById('trade-amount').value);
-            const buyThreshold = parseFloat(document.getElementById('buy-threshold').value);
-            const sellThreshold = parseFloat(document.getElementById('sell-threshold').value);
+addCryptoForm.addEventListener("submit", async event => {
+event.preventDefault();
+const cryptoSelect = document.getElementById("crypto-select");
+const cryptoId = cryptoSelect.value;
+const cryptoName = cryptoSelect.options[cryptoSelect.selectedIndex].textContent;
+const cryptoQuantity = parseFloat(document.getElementById("crypto-quantity").value);
 
-            if (!selectedCryptoId || isNaN(selectedCryptoAmount) || selectedCryptoAmount <= 0) {
-                alert('Veuillez sélectionner une crypto et entrer une quantité valide.');
-                return;
-            }
+const existingCrypto = portfolio.find(item => item.id === cryptoId);
 
-            try {
-                const response = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${selectedCryptoId}`);
-                const data = await response.json();
-                const crypto = data[0];
+if (existingCrypto) {
+existingCrypto.quantity += cryptoQuantity;
+await updateCryptoData(existingCrypto);
+} else {
+const cryptoData = await fetchCryptoPrice(cryptoId);
+if (cryptoData) {
+portfolio.push({
+id: cryptoId, name: cryptoName, quantity: cryptoQuantity,
+priceEUR: cryptoData.current_price.eur, priceUSD: cryptoData.current_price.usd,
+alertThreshold: null
+});
+}
+}
 
-                portfolio[selectedCryptoId] = {
-                    name: crypto.name,
-                    image: crypto.image,
-                    price_usd: crypto.current_price,
-                    price_eur: await getPriceInEUR(selectedCryptoId),
-                    amount: selectedCryptoAmount,
-                    buyThreshold: isNaN(buyThreshold) ? null : buyThreshold,
-                    sellThreshold: isNaN(sellThreshold) ? null : sellThreshold
-                };
+savePortfolio();
+displayPortfolio();
+addCryptoForm.reset();
+});
 
-                updatePortfolioDisplay();
-                checkAlerts(selectedCryptoId);
-            } catch (error) {
-                console.error('Erreur lors de l\'ajout de la cryptomonnaie:', error);
-                alert('Impossible d\'ajouter la cryptomonnaie. Veuillez réessayer.');
-            }
-        });
+async function fetchCryptoPrice(cryptoId) {
+try {
+const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=eur,usd`);
+const data = await response.json();
+return { current_price: data[cryptoId] };
+} catch (error) {
+console.error("Erreur lors de la récupération du prix de la cryptomonnaie :", error);
+return null;
+}
+}
 
-        // Obtenir le prix en EUR
-        async function getPriceInEUR(cryptoId) {
-            try {
-                const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=eur`);
-                const data = await response.json();
-                return data[cryptoId].eur;
-            } catch (error) {
-                console.error('Erreur lors de la récupération du prix en EUR:', error);
-                return null;
-            }
-        }
+function savePortfolio() {
+localStorage.setItem("cryptoPortfolio", JSON.stringify(portfolio));
+}
 
-        // Met à jour l'affichage du portefeuille et calcule la valeur totale
-        function updatePortfolioDisplay() {
-            const portfolioList = document.getElementById('portfolio-list');
-            portfolioList.innerHTML = ''; // Vider le contenu précédent
-            let totalValueUSD = 0;
-            let totalValueEUR = 0;
+async function updateCryptoData(crypto) {
+const cryptoData = await fetchCryptoPrice(crypto.id);
+if (cryptoData) {
+crypto.priceEUR = cryptoData.current_price.eur;
+crypto.priceUSD = cryptoData.current_price.usd;
+}
+}
 
-            for (const [id, crypto] of Object.entries(portfolio)) {
-                const currentValueUSD = crypto.price_usd * crypto.amount;
-                const currentValueEUR = crypto.price_eur * crypto.amount;
-                totalValueUSD += currentValueUSD;
-                totalValueEUR += currentValueEUR;
+function displayPortfolio() {
+portfolioList.innerHTML = '';
+let totalValueEUR = 0;
+let totalValueUSD = 0;
 
-                const portfolioItem = document.createElement('div');
-                portfolioItem.className = 'portfolio-item';
-                portfolioItem.innerHTML = `
-                    <div>
-                        <img src="${crypto.image}" alt="${crypto.name}" style="width: 32px; vertical-align: middle;"> 
-                        <strong>${crypto.name}</strong> : ${crypto.amount.toFixed(4)} unités
-                        <p>Prix actuel : $${crypto.price_usd.toFixed(2)} / €${crypto.price_eur.toFixed(2)}</p>
-                    </div>
-                    <div>
-                        Valeur: $${currentValueUSD.toFixed(2)} / €${currentValueEUR.toFixed(2)}
-                    </div>
-                    <button class="icon-btn" onclick="removeCrypto('${id}')">Supprimer</button>
-                `;
-                portfolioList.appendChild(portfolioItem);
-            }
+portfolio.forEach((crypto, index) => {
+const totalEUR = crypto.priceEUR * crypto.quantity;
+const totalUSD = crypto.priceUSD * crypto.quantity;
+const listItem = document.createElement("li");
+listItem.className = "portfolio-item";
+listItem.innerHTML = `
+${crypto.quantity} - ${crypto.name} ${crypto.priceEUR.toFixed(2)} € / ${crypto.priceUSD.toFixed(2)} $
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Total: ${totalEUR.toFixed(2)} € / ${totalUSD.toFixed(2)} $
+<div class="alert-container">
+<label class="alert-label">Seuil d'alerte (€):</label>
+<input type="number" value="${crypto.alertThreshold || ''}"
+class="small-input" onchange="setAlertThreshold(${index}, this.value)">
+</div>
+<button class="remove-btn" onclick="removeCrypto(${index})">Supprimer</button>
+`;
+portfolioList.appendChild(listItem);
+totalValueEUR += totalEUR;
+totalValueUSD += totalUSD;
+});
 
-            document.getElementById('portfolio-value').textContent = `$${totalValueUSD.toFixed(2)} / €${totalValueEUR.toFixed(2)}`;
-        }
+totalValueDisplay.textContent = `Valeur Totale du Portefeuille : ${totalValueEUR.toFixed(2)} € / ${totalValueUSD.toFixed(2)} $`;
+}
 
-        // Fonction pour supprimer une crypto du portefeuille
-        function removeCrypto(cryptoId) {
-            if (portfolio[cryptoId]) {
-                delete portfolio[cryptoId];
-                updatePortfolioDisplay();
-            } else {
-                alert('La cryptomonnaie sélectionnée n\'existe pas dans le portefeuille.');
-            }
-        }
+function setAlertThreshold(index, value) {
+portfolio[index].alertThreshold = parseFloat(value);
+savePortfolio();
+}
 
-        // Vérifie si une alerte doit être déclenchée
-        function checkAlerts(cryptoId) {
-            const crypto = portfolio[cryptoId];
+async function checkAlerts() {
+for (let crypto of portfolio) {
+if (crypto.alertThreshold !== null) {
+const currentPrice = await fetchCryptoPrice(crypto.id);
+if (currentPrice && currentPrice.current_price.eur >= crypto.alertThreshold) {
+alert(`🚨 Alerte ! ${crypto.name} a atteint le seuil d'alerte.`);
+crypto.alertThreshold = null;
+}
+}
+}
+savePortfolio();
+}
 
-            if (crypto.buyThreshold && crypto.price_usd <= crypto.buyThreshold) {
-                alert(`Alerte : ${crypto.name} a atteint le seuil d'achat ($${crypto.buyThreshold})`);
-                alertSound.play();
-            }
+setInterval(checkAlerts, 30000);
 
-            if (crypto.sellThreshold && crypto.price_usd >= crypto.sellThreshold) {
-                alert(`Alerte : ${crypto.name} a atteint le seuil de vente ($${crypto.sellThreshold})`);
-                alertSound.play();
-            }
-        }
-    </script>
+function removeCrypto(index) {
+portfolio.splice(index, 1);
+savePortfolio();
+displayPortfolio();
+}
+
+displayPortfolio();
+</script>
 </body>
 </html>
