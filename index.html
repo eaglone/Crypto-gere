@@ -133,11 +133,22 @@
                     <div>
                         Valeur: $${currentValueUSD.toFixed(2)} / €${currentValueEUR.toFixed(2)}
                     </div>
+                    <button class="icon-btn" onclick="removeCrypto('${id}')">Supprimer</button>
                 `;
                 portfolioList.appendChild(portfolioItem);
             }
 
             document.getElementById('portfolio-value').textContent = `$${totalValueUSD.toFixed(2)} / €${totalValueEUR.toFixed(2)}`;
+        }
+
+        // Fonction pour supprimer une crypto du portefeuille
+        function removeCrypto(cryptoId) {
+            if (portfolio[cryptoId]) {
+                delete portfolio[cryptoId];
+                updatePortfolioDisplay();
+            } else {
+                alert('La cryptomonnaie sélectionnée n\'existe pas dans le portefeuille.');
+            }
         }
 
         // Vérifie si une alerte doit être déclenchée
