@@ -5,148 +5,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau de Bord de Trading</title>
-    <style>
-        /* Styles généraux */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        header, footer {
-            width: 100%;
-            background-color: #1a73e8;
-            color: #fff;
-            padding: 15px 0;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        #dashboard {
-            max-width: 800px;
-            width: 100%;
-            padding: 20px;
-            margin-top: 20px;
-            background-color: #fff;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-        }
-
-        h2 {
-            color: #1a73e8;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        /* Boutons modernes */
-        button {
-            background-color: #1a73e8;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-        }
-
-        button:hover {
-            background-color: #1558c0;
-            transform: translateY(-2px);
-        }
-
-        /* Style des formulaires et des champs */
-        #trade-form {
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #f9fafb;
-            border-radius: 10px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        label {
-            font-weight: 600;
-            margin-top: 10px;
-            color: #333;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            color: #333;
-            background-color: #f4f6f9;
-            transition: border 0.3s;
-        }
-
-        input:focus, select:focus {
-            border-color: #1a73e8;
-        }
-
-        /* Style des éléments de portefeuille */
-        .portfolio-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f9fafb;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-        }
-
-        .portfolio-item:hover {
-            transform: translateY(-2px);
-        }
-
-        .portfolio-item img {
-            width: 32px;
-            height: 32px;
-            vertical-align: middle;
-            margin-right: 10px;
-        }
-
-        .portfolio-item strong {
-            color: #1a73e8;
-            font-size: 18px;
-        }
-
-        .portfolio-item p {
-            font-size: 14px;
-            color: #555;
-            margin: 5px 0;
-        }
-
-        /* Style de l'alerte de seuil */
-        .alert {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-
-        /* Style des valeurs de portefeuille */
-        #portfolio-value {
-            font-weight: 700;
-            color: #1558c0;
-            font-size: 1.2em;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
         <h1>Tableau de Bord de Trading</h1>
     </header>
 
-    <!-- Tableau de bord utilisateur -->
     <section id="dashboard">
         <h2>Mon Tableau de Bord</h2>
         <p>Valeur totale actuelle de mon portefeuille : <span id="portfolio-value">$0.00 / €0.00</span></p>
@@ -156,16 +21,16 @@
         <div id="trade-form">
             <h3>Ajouter une cryptomonnaie</h3>
             <label for="trade-crypto">Crypto :</label>
-            <select id="trade-crypto">
+            <select id="trade-crypto" class="alert-input">
                 <!-- Les options seront ajoutées dynamiquement -->
             </select>
             <label for="trade-amount">Quantité :</label>
-            <input type="number" id="trade-amount" step="0.0001" placeholder="ex : 1.5">
+            <input type="number" id="trade-amount" step="0.0001" placeholder="ex : 1.5" class="alert-input">
             <label for="buy-threshold">Seuil d'achat (USD) :</label>
-            <input type="number" id="buy-threshold" step="0.01" placeholder="ex : 50000">
+            <input type="number" id="buy-threshold" step="0.01" placeholder="ex : 50000" class="alert-input">
             <label for="sell-threshold">Seuil de vente (USD) :</label>
-            <input type="number" id="sell-threshold" step="0.01" placeholder="ex : 60000">
-            <button id="add-button">Ajouter au portefeuille</button>
+            <input type="number" id="sell-threshold" step="0.01" placeholder="ex : 60000" class="alert-input">
+            <input type="submit" id="add-button" value="Ajouter au portefeuille">
         </div>
     </section>
 
@@ -261,7 +126,7 @@
                 portfolioItem.className = 'portfolio-item';
                 portfolioItem.innerHTML = `
                     <div>
-                        <img src="${crypto.image}" alt="${crypto.name}"> 
+                        <img src="${crypto.image}" alt="${crypto.name}" style="width: 32px; vertical-align: middle;"> 
                         <strong>${crypto.name}</strong> : ${crypto.amount.toFixed(4)} unités
                         <p>Prix actuel : $${crypto.price_usd.toFixed(2)} / €${crypto.price_eur.toFixed(2)}</p>
                     </div>
